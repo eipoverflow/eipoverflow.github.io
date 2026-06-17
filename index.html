@@ -1,11 +1,473 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Home</title>
-  </head>
-  <body>
-    <h1>Hello World!</h1>
-  </body>
-</html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- ============================================================
+     EDIT ME: change the title to your handle / name
+     ============================================================ -->
+<title>nullbyte ~ research</title>
+<meta name="description" content="Security research, exploits, and teaching." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* phosphor: green (P1) is the default; `theme amber` swaps to P3 */
+    --bg:        #0a0d0a;
+    --bg-deep:   #060806;
+    --phos:      #4fe88a;   /* normal phosphor       */
+    --phos-dim:  #2f8a55;   /* comments / muted      */
+    --phos-bright:#c8ffe0;  /* headings / highlights */
+    --phos-glow: rgba(79,232,138,0.35);
+    --warn:      #ffd24a;   /* used sparingly        */
+    --scan:      rgba(0,0,0,0.28);
+  }
+  :root[data-theme="amber"] {
+    --bg:        #100a04;
+    --bg-deep:   #0b0703;
+    --phos:      #ffb642;
+    --phos-dim:  #9a6a1f;
+    --phos-bright:#ffe6b0;
+    --phos-glow: rgba(255,182,66,0.35);
+    --warn:      #ff8a4a;
+    --scan:      rgba(0,0,0,0.30);
+  }
 
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--phos);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 16px;
+    line-height: 1.55;
+    overflow: hidden;
+  }
+
+  /* ---- CRT screen shell ---- */
+  .crt {
+    position: fixed;
+    inset: 0;
+    padding: clamp(14px, 3vw, 40px);
+    background:
+      radial-gradient(120% 120% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%),
+      var(--bg);
+    box-shadow: inset 0 0 140px rgba(0,0,0,0.7);
+    display: flex;
+    flex-direction: column;
+  }
+  /* scanlines */
+  .crt::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 2px,
+      var(--scan) 3px,
+      var(--scan) 3px
+    );
+    z-index: 5;
+    mix-blend-mode: multiply;
+  }
+  /* faint flicker + bloom layer */
+  .crt::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: var(--phos-glow);
+    opacity: 0.025;
+    z-index: 4;
+    animation: flicker 5s infinite steps(60);
+  }
+  @keyframes flicker { 0%,97%{opacity:.025} 98%{opacity:.06} 99%{opacity:.015} 100%{opacity:.03} }
+
+  /* ---- titlebar ---- */
+  .titlebar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: "VT323", monospace;
+    font-size: 22px;
+    color: var(--phos-dim);
+    border-bottom: 1px solid color-mix(in srgb, var(--phos) 22%, transparent);
+    padding-bottom: 8px;
+    margin-bottom: 6px;
+    flex: 0 0 auto;
+    z-index: 6;
+  }
+  .titlebar .dot { width: 11px; height: 11px; border: 1px solid var(--phos-dim); border-radius: 50%; }
+  .titlebar .grow { flex: 1; }
+  .titlebar .right { letter-spacing: 1px; }
+
+  /* ---- scrolling terminal body ---- */
+  .screen {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 6px;
+    z-index: 6;
+    scrollbar-width: thin;
+    scrollbar-color: var(--phos-dim) transparent;
+    text-shadow: 0 0 6px var(--phos-glow);
+  }
+  .screen::-webkit-scrollbar { width: 8px; }
+  .screen::-webkit-scrollbar-thumb { background: var(--phos-dim); }
+
+  /* text glow on everything inside the screen for the bloom feel */
+  .line { white-space: pre-wrap; word-break: break-word; }
+  .dim    { color: var(--phos-dim); }
+  .bright { color: var(--phos-bright); }
+  .warn   { color: var(--warn); }
+  a { color: var(--phos-bright); text-decoration: none; border-bottom: 1px dotted var(--phos-dim); }
+  a:hover, a:focus { background: var(--phos); color: var(--bg); outline: none; }
+
+  /* ASCII banner */
+  .banner {
+    font-family: "VT323", monospace;
+    font-size: clamp(13px, 2.4vw, 20px);
+    line-height: 1;
+    color: var(--phos-bright);
+    white-space: pre;
+    overflow-x: auto;
+    margin: 4px 0 2px;
+  }
+  .tagline { font-family:"VT323",monospace; font-size: 20px; color: var(--phos-dim); margin-bottom: 14px; }
+
+  h2.sec {
+    font-family: "VT323", monospace;
+    font-size: 26px;
+    color: var(--phos-bright);
+    margin: 18px 0 2px;
+    letter-spacing: 1px;
+  }
+  .entry { margin: 0 0 14px; padding-left: 2px; }
+  .entry .meta { color: var(--phos-dim); font-size: 13px; }
+  .entry .name { color: var(--phos-bright); }
+  .tag { color: var(--phos-dim); }
+
+  /* ---- prompt / input line ---- */
+  .promptline { display: flex; align-items: baseline; gap: 8px; z-index: 6; }
+  .ps1 { color: var(--phos-bright); flex: 0 0 auto; }
+  .ps1 .user { color: var(--phos); }
+  .ps1 .host { color: var(--phos); }
+  .ps1 .path { color: var(--phos-dim); }
+  #cmd {
+    flex: 1 1 auto;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--phos-bright);
+    font-family: inherit;
+    font-size: 16px;
+    caret-color: transparent;
+    text-shadow: 0 0 6px var(--phos-glow);
+  }
+  .cursor {
+    display: inline-block;
+    width: 9px; height: 18px;
+    background: var(--phos);
+    transform: translateY(3px);
+    animation: blink 1.05s steps(1) infinite;
+    flex: 0 0 auto;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* clickable command chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 2px; flex: 0 0 auto; z-index: 6; }
+  .chip {
+    font-family: "VT323", monospace;
+    font-size: 18px;
+    background: transparent;
+    color: var(--phos);
+    border: 1px solid color-mix(in srgb, var(--phos) 40%, transparent);
+    padding: 1px 12px;
+    cursor: pointer;
+  }
+  .chip:hover, .chip:focus { background: var(--phos); color: var(--bg); outline: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .crt::after { animation: none; }
+    .cursor { animation: none; }
+  }
+  @media (max-width: 560px) {
+    body { font-size: 14px; }
+    .titlebar { font-size: 17px; }
+    .titlebar .right { display: none; }
+  }
+</style>
+</head>
+<body>
+  <main class="crt">
+    <div class="titlebar">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      <span class="grow">/dev/tty1 — bash</span>
+      <span class="right" id="clock">--:--:--</span>
+    </div>
+
+    <div class="screen" id="screen" tabindex="0"></div>
+
+    <div class="chips" id="chips">
+      <button class="chip" data-cmd="whoami">whoami</button>
+      <button class="chip" data-cmd="cat research.md">research</button>
+      <button class="chip" data-cmd="cat exploits.md">exploits</button>
+      <button class="chip" data-cmd="cat teaching.md">teaching</button>
+      <button class="chip" data-cmd="cat contact.md">contact</button>
+      <button class="chip" data-cmd="help">help</button>
+    </div>
+
+    <div class="promptline">
+      <span class="ps1" id="ps1"></span>
+      <input id="cmd" autocomplete="off" autocapitalize="off" spellcheck="false"
+             aria-label="terminal command input" />
+      <span class="cursor" id="cursor"></span>
+    </div>
+  </main>
+
+<script>
+/* ============================================================
+   EDIT ME — your identity. PS1 = the prompt: user@host:path$
+   ============================================================ */
+const USER = "nullbyte";
+const HOST = "exo";
+const PATH = "~";
+
+/* ASCII banner — generate your own at patorjk.com (font: "Standard"
+   or "Slant") and paste between the backticks. */
+const BANNER = String.raw`
+                _ _ _           _       
+  _ __  _   _  | | | |__  _   _| |_ ___ 
+ | '_ \| | | | | | | '_ \| | | | __/ _ \
+ | | | | |_| | | | | |_) | |_| | ||  __/
+ |_| |_|\__,_|_|_|_|_.__/ \__, |\__\___|
+                          |___/         `;
+
+/* ============================================================
+   EDIT ME — your content. Each section is an array of entries.
+   Use {bright:"..."} for the title and html for free-form lines.
+   ============================================================ */
+const CONTENT = {
+  whoami: [
+    `<span class="bright">${USER}</span> — security researcher & educator`,
+    ``,
+    `I break things to understand them, write up what I find, and`,
+    `teach others to do the same. Focus areas: memory corruption,`,
+    `binary exploitation, and web application security.`,
+    ``,
+    `<span class="dim"># type `+"`help`"+` to see what you can do here.</span>`,
+  ],
+
+  "research.md": {
+    title: "research/",
+    entries: [
+      { name: "Heap grooming in glibc 2.39", meta: "2025 · paper",
+        body: "Deterministic tcache layout primitives under modern allocator hardening.",
+        link: "#", tags: ["heap","glibc"] },
+      { name: "Side-channels in WASM runtimes", meta: "2024 · talk",
+        body: "Timing leaks across sandbox boundaries in three popular engines.",
+        link: "#", tags: ["wasm","timing"] },
+      { name: "Fuzzing parser combinators", meta: "2024 · blog",
+        body: "Coverage-guided fuzzing harness that found 11 crashes in a week.",
+        link: "#", tags: ["fuzzing"] },
+    ]
+  },
+
+  "exploits.md": {
+    title: "exploits/  ",
+    note: "Responsible disclosure only. Writeups published after patch + embargo.",
+    entries: [
+      { name: "CVE-2025-XXXXX — RCE in AcmeRouter", meta: "advisory · patched",
+        body: "Auth bypass chained to command injection in the admin API.",
+        link: "#", tags: ["rce","iot"] },
+      { name: "CVE-2024-XXXXX — UAF in libfoo", meta: "advisory · patched",
+        body: "Use-after-free in the image decoder reachable from untrusted input.",
+        link: "#", tags: ["uaf","memory"] },
+      { name: "Writeup: SROP without a leak", meta: "ctf · writeup",
+        body: "Sigreturn-oriented programming against a statically-linked target.",
+        link: "#", tags: ["pwn","ctf"] },
+    ]
+  },
+
+  "teaching.md": {
+    title: "teaching/",
+    entries: [
+      { name: "intro-to-pwn", meta: "workshop · 8 weeks",
+        body: "From your first buffer overflow to ROP, with hands-on labs.",
+        link: "#", tags: ["course"] },
+      { name: "web-sec-101", meta: "video series",
+        body: "OWASP Top 10 explained by actually exploiting a test app.",
+        link: "#", tags: ["web"] },
+      { name: "office hours", meta: "weekly · free",
+        body: "Bring a challenge you're stuck on. We debug it together.",
+        link: "#", tags: ["mentoring"] },
+    ]
+  },
+
+  "contact.md": [
+    `<span class="bright">find me:</span>`,
+    ``,
+    `  github   <a href="https://github.com/YOURNAME" target="_blank" rel="noopener">github.com/YOURNAME</a>`,
+    `  mastodon <a href="#" target="_blank" rel="noopener">@YOURNAME@infosec.exchange</a>`,
+    `  email    <a href="mailto:you@example.com">you@example.com</a>`,
+    `  pgp      <a href="#">0xDEADBEEF</a>`,
+  ],
+};
+
+/* ============================================================
+   Terminal engine — usually no need to edit below here.
+   ============================================================ */
+const screen = document.getElementById("screen");
+const input  = document.getElementById("cmd");
+const ps1El  = document.getElementById("ps1");
+
+function ps1html() {
+  return `<span class="user">${USER}</span>@<span class="host">${HOST}</span>:<span class="path">${PATH}</span>$&nbsp;`;
+}
+ps1El.innerHTML = ps1html();
+
+function print(html = "", cls = "") {
+  const div = document.createElement("div");
+  div.className = "line " + cls;
+  div.innerHTML = html;
+  screen.appendChild(div);
+  screen.scrollTop = screen.scrollHeight;
+  return div;
+}
+
+function echoCommand(cmd) {
+  print(`${ps1html()}<span class="bright">${escapeHtml(cmd)}</span>`);
+}
+function escapeHtml(s){return s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+
+function renderSection(key) {
+  const data = CONTENT[key];
+  if (Array.isArray(data)) { data.forEach(l => print(l)); return; }
+  print(`<h2 class="sec">${data.title.trim()}</h2>`);
+  if (data.note) print(`<span class="dim"># ${data.note}</span>`);
+  print("");
+  data.entries.forEach(e => {
+    const tags = (e.tags||[]).map(t=>`<span class="tag">#${t}</span>`).join(" ");
+    const title = e.link
+      ? `<a href="${e.link}" target="_blank" rel="noopener">${e.name}</a>`
+      : `<span class="name">${e.name}</span>`;
+    print(
+      `<div class="entry">` +
+        `<span class="bright">▸</span> ${title}  <span class="meta">[${e.meta}]</span>` +
+        `<br><span class="dim">  ${e.body}</span> ${tags}` +
+      `</div>`
+    );
+  });
+}
+
+const COMMANDS = {
+  help() {
+    print(`<span class="bright">available commands</span>`);
+    print(`  <span class="bright">whoami</span>        who is this`);
+    print(`  <span class="bright">ls</span>            list files`);
+    print(`  <span class="bright">cat</span> &lt;file&gt;    read a file (research.md, exploits.md, teaching.md, contact.md)`);
+    print(`  <span class="bright">theme</span> &lt;name&gt;  switch phosphor: green | amber`);
+    print(`  <span class="bright">banner</span>        reprint the banner`);
+    print(`  <span class="bright">clear</span>         clear the screen`);
+    print(`  <span class="bright">help</span>          this message`);
+    print(``);
+    print(`<span class="dim"># tip: ↑/↓ for history. or just click the chips below.</span>`);
+  },
+  ls() {
+    print(`<span class="bright">research.md  exploits.md  teaching.md  contact.md</span>`);
+  },
+  whoami() { renderSection("whoami"); },
+  cat(args) {
+    const f = (args[0]||"").replace(/^\.?\//,"");
+    if (CONTENT[f]) renderSection(f);
+    else if (f === "") print(`cat: missing operand. try: cat research.md`, "warn");
+    else print(`cat: ${escapeHtml(f)}: No such file or directory`, "warn");
+  },
+  theme(args) {
+    const t = (args[0]||"").toLowerCase();
+    if (t === "amber") { document.documentElement.dataset.theme = "amber"; print(`phosphor set to <span class="bright">amber (P3)</span>`); }
+    else if (t === "green") { document.documentElement.removeAttribute("data-theme"); print(`phosphor set to <span class="bright">green (P1)</span>`); }
+    else print(`usage: theme [green|amber]`, "warn");
+  },
+  banner() { print(`<div class="banner">${BANNER}</div>`); },
+  clear() { screen.innerHTML = ""; },
+};
+
+const ALIASES = {
+  research: ["cat","research.md"], exploits: ["cat","exploits.md"],
+  teaching: ["cat","teaching.md"], contact: ["cat","contact.md"],
+  about: ["whoami"], "?": ["help"], dir: ["ls"],
+};
+
+function run(raw) {
+  const cmd = raw.trim();
+  if (!cmd) return;
+  echoCommand(cmd);
+  let [name, ...args] = cmd.split(/\s+/);
+  name = name.toLowerCase();
+  if (ALIASES[name]) { [name, ...args] = ALIASES[name]; }
+  if (COMMANDS[name]) COMMANDS[name](args);
+  else print(`${escapeHtml(name)}: command not found. type <span class="bright">help</span>`, "warn");
+  print("");
+}
+
+/* history */
+const hist = []; let hi = -1;
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const v = input.value;
+    if (v.trim()) { hist.push(v); hi = hist.length; }
+    input.value = ""; run(v);
+  } else if (e.key === "ArrowUp") {
+    if (hi > 0) { hi--; input.value = hist[hi]; e.preventDefault(); }
+  } else if (e.key === "ArrowDown") {
+    if (hi < hist.length - 1) { hi++; input.value = hist[hi]; }
+    else { hi = hist.length; input.value = ""; }
+  } else if (e.key === "l" && e.ctrlKey) { e.preventDefault(); COMMANDS.clear(); }
+});
+
+/* chips */
+document.getElementById("chips").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  run(b.dataset.cmd); input.focus();
+});
+
+/* keep focus on the input when clicking the screen (real-terminal feel) */
+document.querySelector(".crt").addEventListener("mousedown", e => {
+  if (e.target.closest("a, .chip, #cmd")) return;
+  setTimeout(() => input.focus(), 0);
+});
+
+/* clock */
+setInterval(() => {
+  document.getElementById("clock").textContent =
+    new Date().toTimeString().slice(0,8);
+}, 1000);
+
+/* boot sequence */
+function boot() {
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const lines = [
+    `<span class="dim">Last login: ${new Date().toUTCString()} on tty1</span>`,
+    `<div class="banner">${BANNER}</div>`,
+    `<span class="tagline">// security research · exploits · teaching</span>`,
+    `<span class="dim">type </span><span class="bright">help</span><span class="dim"> to begin, or click a command below.</span>`,
+    ``,
+  ];
+  if (reduce) { lines.forEach(l => print(l)); input.focus(); return; }
+  let i = 0;
+  (function step(){
+    if (i >= lines.length) { input.focus(); return; }
+    print(lines[i++]);
+    setTimeout(step, 220);
+  })();
+}
+boot();
+input.focus();
+</script>
+</body>
+</html>
