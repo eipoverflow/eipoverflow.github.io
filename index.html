@@ -32,7 +32,7 @@ const POSTS = [{% for p in site.posts %}
 ];
 
 /* top-level sections, in the order you want them listed */
-const TOP = ["research", "exploits", "teaching"];
+const TOP = ["research", "exploits", "teaching", "publications"];
 
 /* ---- EDIT ME: static identity sections ---- */
 const BANNER = String.raw`
@@ -139,7 +139,7 @@ const CMDS = {
   clear(){ screen.innerHTML=""; },
 };
 const ALIAS = { research:["cat","research"], exploits:["cat","exploits"], teaching:["cat","teaching"],
-                contact:["cat","contact"], about:["whoami"], dir:["ls"], "?":["help"] };
+                contact:["cat","contact"], about:["whoami"], publications: ["cat", "publications"], dir:["ls"], "?":["help"] };
 
 function run(raw){
   const cmd=raw.trim(); if(!cmd) return; echo(cmd);
