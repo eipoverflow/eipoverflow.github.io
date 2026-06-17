@@ -1,8 +1,8 @@
 ---
 title: "BI-ASB"
-category: [ teaching, asb]
-tags: [course, pwn]
-description: "From a vulnerable C program to controlling the instruction pointer."
+category: [teaching, asb]
+tags: [course, asb]
+description: ""
 ---
 
 Welcome to week 1. By the end you'll overwrite a return address and redirect
