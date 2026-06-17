@@ -35,6 +35,8 @@ const POSTS = {
   teaching: [{% for p in site.categories.teaching %}
     { title: {{ p.title | jsonify }}, url: {{ p.url | relative_url | jsonify }}, date: {{ p.date | date: "%Y-%m-%d" | jsonify }}, summary: {{ p.description | default: p.excerpt | strip_html | strip_newlines | truncate: 110 | jsonify }}, tags: {{ p.tags | jsonify }} },{% endfor %}
   ],
+
+  publications: [ ]
 };
 
 /* ---- EDIT ME: static identity sections ---- */
@@ -47,7 +49,7 @@ const BANNER = String.raw`
         |_|                                            `;
 
 const WHOAMI = [
-  `<span class="bright">${USER}</span> — security researcher & educator`,
+  `<span class="bright">${USER}</span> — security researcher`,
   ``,
   `I break things to understand them, write up what I find, and`,
   `teach others to do the same. Memory corruption, binary`,
@@ -59,7 +61,6 @@ const CONTACT = [
   `<span class="bright">find me:</span>`, ``,
   `  github   <a href="https://github.com/eipoverflow">github.com/eipoverflow</a>`,
   `  mastodon <a href="#">@eipoverflow@infosec.exchange</a>`,
-  `  email    <a href="mailto:you@example.com">you@example.com</a>`,
 ];
 
 /* ---- engine (rarely needs editing) ---- */

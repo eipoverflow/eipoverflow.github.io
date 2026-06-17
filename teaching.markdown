@@ -1,5 +1,0 @@
----
-permalink: /%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/passwd
----
-
-# Test
