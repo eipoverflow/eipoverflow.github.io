@@ -1,0 +1,14 @@
+---
+layout: default
+---
+<div class="screen" id="screen" tabindex="0">
+  <div class="line"><span class="bright">{{ site.shell.user }}</span>@{{ site.shell.host }}:<span class="dim">~</span>$ cat {{ page.category }}/{{ page.title | slugify }}</div>
+  <h2 class="sec">{{ page.title }}</h2>
+  <div class="line"><span class="dim">{{ page.date | date: "%Y-%m-%d" }} · {{ page.category }}{% for t in page.tags %} #{{ t }}{% endfor %}</span></div>
+  <br />
+  <article class="post">
+    {{ content }}
+  </article>
+  <br />
+  <div class="line"><a href="{{ '/' | relative_url }}">cd ~  ← back to shell</a></div>
+</div>
