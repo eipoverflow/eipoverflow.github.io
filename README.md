@@ -32,9 +32,33 @@ description: "One line shown in the terminal listing."
 Your content in plain markdown...
 ```
 
-Commit it. It automatically appears when someone types `cat research.md`
+Commit it. It automatically appears when someone types `cat research`
 in the shell, and gets its own page at `/research/2025/my-new-finding/`.
 That's it — no HTML.
+
+## Nested categories (subfolders)
+
+Use the **plural** `categories:` field with a list. The first item is the
+top-level section; everything after is a subfolder:
+
+```yaml
+categories: [research, heap]      # -> research/heap/
+categories: [exploits, iot]       # -> exploits/iot/
+categories: [research, web, csp]  # -> research/web/csp/  (any depth works)
+```
+
+The post's URL follows the path automatically
+(`/research/heap/2025/my-title/`), and the shell treats the sections like
+folders:
+
+- `ls` lists the top-level sections
+- `cat research` shows its subfolders (`heap/`, `web/`) plus any loose posts
+- `cat research/heap` lists the posts in that subfolder
+- subfolder names in the output are clickable
+
+Top-level sections shown by `ls` are controlled by the `TOP` array near the
+top of `index.html` — edit that list to rename or reorder them. Subfolders are
+discovered automatically from your posts, so you never register them anywhere.
 
 ## Edit the theme / identity
 

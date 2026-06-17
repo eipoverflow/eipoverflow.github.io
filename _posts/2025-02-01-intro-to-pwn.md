@@ -1,6 +1,6 @@
 ---
 title: "intro-to-pwn — week 1: your first overflow"
-category: teaching
+categories: [teaching, pwn]
 tags: [course, pwn]
 description: "From a vulnerable C program to controlling the instruction pointer."
 ---

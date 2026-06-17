@@ -1,6 +1,6 @@
 ---
 title: "Heap grooming in glibc 2.39"
-category: research
+categories: [research, heap]
 tags: [heap, glibc]
 description: "Deterministic tcache layout primitives under modern allocator hardening."
 ---
